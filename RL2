@@ -1,0 +1,90 @@
+import gymnasium as gym
+import math
+import random
+
+env = gym.make("CartPole-v1")
+
+class Node:
+    def __init__(self, state, parent=None, action=None):
+        self.state = state
+        self.parent = parent
+        self.action = action
+        self.children = []
+        self.visits = 0
+        self.reward = 0
+        self.untried_actions = [0, 1]
+
+def ucb(parent, child):
+    if child.visits == 0:
+        return float('inf')
+    return (child.reward / child.visits) + \
+           1.41 * math.sqrt(math.log(parent.visits) / child.visits)
+
+def simulate(state, action):
+    env_copy = gym.make("CartPole-v1")
+    s, _ = env_copy.reset()
+    env_copy.unwrapped.state = state
+
+    next_state, _, terminated, truncated, _ = env_copy.step(action)
+    return next_state, (terminated or truncated)
+
+def rollout(state):
+    env_copy = gym.make("CartPole-v1")
+    s, _ = env_copy.reset()
+    env_copy.unwrapped.state = state
+
+    total_reward = 0
+    done = False
+
+    while not done:
+        action = env_copy.action_space.sample()
+        s, reward, terminated, truncated, _ = env_copy.step(action)
+        done = terminated or truncated
+        total_reward += reward
+
+    return total_reward
+
+def mcts(root_state, iterations=30):
+    root = Node(root_state)
+
+    for _ in range(iterations):
+        node = root
+
+        # Selection
+        while node.children and not node.untried_actions:
+            node = max(node.children, key=lambda x: ucb(node, x))
+
+        # Expansion
+        if node.untried_actions:
+            action = node.untried_actions.pop()
+            next_state, _ = simulate(node.state, action)
+            child = Node(next_state, node, action)
+            node.children.append(child)
+            node = child
+
+        # Simulation
+        reward = rollout(node.state)
+
+        # Backpropagation
+        while node:
+            node.visits += 1
+            node.reward += reward
+            node = node.parent
+
+    return max(root.children, key=lambda x: x.visits).action
+
+
+# RUN
+state, _ = env.reset()
+total_reward = 0
+
+for _ in range(200):
+    action = mcts(state, iterations=30)
+    state, reward, terminated, truncated, _ = env.step(action)
+
+    total_reward += reward
+    if terminated or truncated:
+        break
+
+print("Total Reward:", total_reward)
+env.close()
