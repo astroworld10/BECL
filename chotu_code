@@ -1,0 +1,86 @@
+#optimization generic algorithm
+
+import warnings
+warnings.filterwarnings('ignore')
+
+import numpy as np
+import pandas as pd
+from sklearn.neural_network import MLPRegressor
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import mean_squared_error
+import random
+
+np.random.seed(0)
+
+temperature=np.random.randint(140,200,100)
+pressure=np.random.randint(10,30,100)
+speed=np.random.randint(1000,3000,100)
+
+yield_output=(0.4*temperature)+(0.3*pressure)+(0.02*speed)+np.random.randn(100)*10
+
+df=pd.DataFrame({
+    'Temperature':temperature,
+    'Pressure':pressure,
+    'Speed':speed,
+    'Yield':yield_output
+})
+
+X=df[['Temperature','Pressure','Speed']]
+y=df['Yield']
+
+X_train,X_test,y_train,y_test=train_test_split(X,y,test_size=0.2,random_state=42)
+
+def fitness(hidden_layer):
+
+    model=MLPRegressor(hidden_layer_sizes=(hidden_layer,),
+                       max_iter=1000,
+                       random_state=1)
+
+    model.fit(X_train,y_train)
+
+    pred=model.predict(X_test)
+
+    mse=mean_squared_error(y_test,pred)
+
+    return mse
+
+population=[random.randint(2,20) for i in range(6)]
+
+best=None
+best_score=999999
+
+for generation in range(5):
+
+    print("Generation",generation+1)
+
+    for individual in population:
+
+        score=fitness(individual)
+
+        print("Neuron:",individual,"MSE:",round(score,2))
+
+        if score<best_score:
+            best_score=score
+            best=individual
+
+    population=sorted(population,key=lambda x:fitness(x))[:3]
+
+    new_population=population.copy()
+
+    while len(new_population)<6:
+
+        parent=random.choice(population)
+
+        child=parent+random.randint(-2,2)
+
+        if child<2:
+            child=2
+
+        new_population.append(child)
+
+    population=new_population
+
+    print("---------------------")
+
+print("Best Hidden Neurons:",best)
+print("Best Error:",round(best_score,2))
