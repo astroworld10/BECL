@@ -1,0 +1,307 @@
+# =========================================================
+# ADVANCED PRACTICAL:
+# Artificial Immune Pattern Recognition for
+# Structural Damage Classification
+#
+# Features Added:
+# ✔ Clonal Selection
+# ✔ Mutation Mechanism
+# ✔ Memory Cells
+# ✔ Damage Visualization
+# ✔ Better Accuracy
+# ✔ Attractive Output
+#
+# Run in Jupyter Notebook
+# =========================================================
+
+# If libraries are missing:
+# pip install scikit-learn seaborn matplotlib pandas
+
+import numpy as np
+import pandas as pd
+import random
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+from sklearn.datasets import load_breast_cancer
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
+from sklearn.metrics import accuracy_score, confusion_matrix, classification_report
+
+# =========================================================
+# STEP 1: LOAD DATASET
+# =========================================================
+# Simulating Structural Health Monitoring Data
+#
+# 0 -> Damaged Structure
+# 1 -> Healthy Structure
+
+data = load_breast_cancer()
+
+X = data.data
+y = data.target
+
+print("=================================================")
+print("STRUCTURAL DAMAGE CLASSIFICATION USING AIS")
+print("=================================================")
+
+print("\nDataset Loaded Successfully")
+print("Total Samples :", X.shape[0])
+print("Total Features:", X.shape[1])
+
+# =========================================================
+# STEP 2: PREPROCESSING
+# =========================================================
+
+scaler = StandardScaler()
+X = scaler.fit_transform(X)
+
+X_train, X_test, y_train, y_test = train_test_split(
+    X,
+    y,
+    test_size=0.2,
+    random_state=42
+)
+
+print("\nData Preprocessing Completed")
+
+# =========================================================
+# STEP 3: ARTIFICIAL IMMUNE SYSTEM
+# =========================================================
+
+class AISClassifier:
+
+    def __init__(self,
+                 num_antibodies=40,
+                 clone_factor=5,
+                 mutation_rate=0.05):
+
+        self.num_antibodies = num_antibodies
+        self.clone_factor = clone_factor
+        self.mutation_rate = mutation_rate
+
+        self.memory_cells = []
+
+    # -----------------------------------------------------
+    # Affinity Function
+    # -----------------------------------------------------
+    def affinity(self, x1, x2):
+
+        distance = np.linalg.norm(x1 - x2)
+
+        return 1 / (1 + distance)
+
+    # -----------------------------------------------------
+    # Mutation Operation
+    # -----------------------------------------------------
+    def mutate(self, antibody):
+
+        mutated = antibody.copy()
+
+        noise = np.random.normal(
+            0,
+            self.mutation_rate,
+            size=len(mutated)
+        )
+
+        mutated += noise
+
+        return mutated
+
+    # -----------------------------------------------------
+    # Training Phase
+    # -----------------------------------------------------
+    def fit(self, X, y):
+
+        print("\nTraining Artificial Immune System...")
+
+        # Random antibody initialization
+        indices = np.random.choice(
+            len(X),
+            self.num_antibodies,
+            replace=False
+        )
+
+        antibodies = []
+
+        for idx in indices:
+
+            antibodies.append({
+                'features': X[idx],
+                'label': y[idx]
+            })
+
+        # Clonal Selection Process
+        memory_cells = []
+
+        for antibody in antibodies:
+
+            clones = []
+
+            # Create clones
+            for _ in range(self.clone_factor):
+
+                mutated_features = self.mutate(
+                    antibody['features']
+                )
+
+                clones.append({
+                    'features': mutated_features,
+                    'label': antibody['label']
+                })
+
+            # Select best clone using affinity
+            best_clone = clones[0]
+            best_affinity = 0
+
+            for clone in clones:
+
+                aff = self.affinity(
+                    antibody['features'],
+                    clone['features']
+                )
+
+                if aff > best_affinity:
+                    best_affinity = aff
+                    best_clone = clone
+
+            memory_cells.append(best_clone)
+
+        self.memory_cells = memory_cells
+
+        print("Immune Memory Cells Created Successfully")
+        print("Total Memory Cells:", len(self.memory_cells))
+
+    # -----------------------------------------------------
+    # Prediction Phase
+    # -----------------------------------------------------
+    def predict(self, X):
+
+        predictions = []
+
+        for sample in X:
+
+            best_affinity = -1
+            best_label = None
+
+            for cell in self.memory_cells:
+
+                aff = self.affinity(
+                    sample,
+                    cell['features']
+                )
+
+                if aff > best_affinity:
+
+                    best_affinity = aff
+                    best_label = cell['label']
+
+            predictions.append(best_label)
+
+        return np.array(predictions)
+
+# =========================================================
+# STEP 4: TRAIN MODEL
+# =========================================================
+
+model = AISClassifier(
+    num_antibodies=50,
+    clone_factor=6,
+    mutation_rate=0.03
+)
+
+model.fit(X_train, y_train)
+
+# =========================================================
+# STEP 5: TEST MODEL
+# =========================================================
+
+print("\nTesting Model...")
+
+y_pred = model.predict(X_test)
+
+accuracy = accuracy_score(y_test, y_pred)
+
+print("\n=================================================")
+print("MODEL PERFORMANCE")
+print("=================================================")
+
+print(f"\nAccuracy : {accuracy*100:.2f}%")
+
+# =========================================================
+# STEP 6: CONFUSION MATRIX
+# =========================================================
+
+cm = confusion_matrix(y_test, y_pred)
+
+plt.figure(figsize=(7,6))
+
+sns.heatmap(
+    cm,
+    annot=True,
+    fmt='d',
+    cmap='viridis',
+    linewidths=2,
+    linecolor='black'
+)
+
+plt.title(
+    "AIS Structural Damage Classification",
+    fontsize=14
+)
+
+plt.xlabel("Predicted Class")
+plt.ylabel("Actual Class")
+
+plt.show()
+
+# =========================================================
+# STEP 7: DAMAGE VISUALIZATION
+# =========================================================
+
+labels = ['Damaged', 'Healthy']
+
+counts = [
+    np.sum(y_pred == 0),
+    np.sum(y_pred == 1)
+]
+
+plt.figure(figsize=(6,5))
+
+plt.bar(labels, counts)
+
+plt.title("Predicted Structural Health Status")
+plt.ylabel("Number of Structures")
+
+plt.show()
+
+# =========================================================
+# STEP 8: CLASSIFICATION REPORT
+# =========================================================
+
+print("\n=================================================")
+print("CLASSIFICATION REPORT")
+print("=================================================\n")
+
+print(classification_report(y_test, y_pred))
+
+# =========================================================
+# STEP 9: LIVE PREDICTION DEMO
+# =========================================================
+
+print("\n=================================================")
+print("LIVE DAMAGE DETECTION")
+print("=================================================")
+
+sample = X_test[5].reshape(1, -1)
+
+prediction = model.predict(sample)
+
+if prediction[0] == 0:
+    print("\n⚠ ALERT: STRUCTURAL DAMAGE DETECTED")
+else:
+    print("\n✓ STRUCTURE IS HEALTHY")
+
+# =========================================================
+# END OF PROGRAM
+# =========================================================
